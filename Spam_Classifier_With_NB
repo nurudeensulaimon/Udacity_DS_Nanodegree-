@@ -1,0 +1,114 @@
+# Spam Classifier Using Niave Bayes 
+
+import pandas as pd
+# Dataset from - htts://archive.ics.uci.edu/ml/datasets/SMS+Spam+Colection
+df= pd.read_table('smsspamcollection/SMSSpamCollection',
+	              sep='\t',
+	              header=None,
+	              names=['label', 'sms_message'])
+
+df.head()
+
+# Process the data set 
+# Map applies a function to all the items in an input list or df column.
+df['label'] = df.label.map({'ham':0, 'spam':1})
+df.head()
+
+# Enter Bag of Words 
+
+import string # punctuation 
+import pprint 
+from collections import Counter # frequencies 
+
+# Bag of Words from scratch 
+documents = ['Hello, how are you!'
+             'Win money, win from home.',
+             'Call me now.',
+             'Hello, Call hello you tomorrow?']
+lower_case_documents = []
+
+for i in documents:
+	lower_case_documents.append(i.lower())
+print "lower case:", lower_case_documents 
+
+# Remove punctuations 
+sans_punctuation_documents = []
+
+for i in lower_case_documents:
+	sans_punctuation_documents=["".join(j for j in i if j not in string.punctuation) for i in lower_case_documents]
+print"no punctuation:", (sans_punctuation_documents)
+
+# Break each word 
+preprocessed_documents = []
+
+for i in sans_punctuation_documents:
+    preprocessed_documents.append(i.split(' '))	 # Split on space 
+print "break words:", (preprocessed_documents)
+
+# Count frequency of words using counter 
+frequency_list = []
+
+for i in preprocessed_documents:
+	frequency_counts = Counter(i)
+	frequency_list.append(frequency_counts)
+print "tokenized counts:", pprint.pprint(frequency_list)
+
+# Scikit Learn Feature Extraction 
+from sklearn.feature_extraction.text import CountVectorizer 
+
+count_vector = CountVectorizer() # set the variable 
+
+count_vector.fit(documents) # fit the function
+count_vector.get_feature_names() # get the outputs 
+
+
+# Create an array 
+
+doc_array = count_vector.transform(documents).toarray()
+
+frequency_matrix = pd.DataFrame(doc_array, 
+	                  columns=count_vector.get_feature_names()
+	                  )
+
+frequency_matrix 
+
+# Training and Testing Sets 
+
+from sklearn.model_selection import train_test_split 
+
+X_train, X_test, y_train, y_test = train_test_split(df['sms_message'],
+	                                                df['label'],
+	                                                random_state=1)
+
+print "Our original set contains", df.shape[0], "observations"
+print "Our training set contains", X_train.shape[0], "observations"
+print "Our testing set contains", X_test.shape[0], "observations"
+
+# Fit the training and tsting data to the CountVectorizer() method and return a matrix
+train = count_vector.fit_transform(X_train)
+test = count_vector.transform(X_test)
+
+
+
+
+# Naive Bayes Classifier using Scikit Learn 
+
+from sklearn.naive_bayes import MultinomialNB
+naive_bayes = MultinomialNB()
+naive_bayes.fit(train, y_train) # Train the classifier on the training set 
+
+MultinomialNB(alpha=0.1, class_prior=None, fit_prior=True)
+
+predictions = naive_bayes.predict(test) # predic using the model on the testing set
+
+
+# Evaluating the model
+
+# Accuracy: A rationb of correct predictions to the total number of predictions 
+# Precision: The proportion of messages which were correctly classified as spam.
+# This is a ratio of true positives (messages classified as SPAM which actually are SPAM) to all positives (all messages classified as SPAM)
+
+from sklearn.metrics import accuracy_score, precision_score, f1_score
+print('accuracy score: '), format(accuracy_score(y_test, predictions))
+print('precision score: '), format(precision_score(y_test, predictions))
+
